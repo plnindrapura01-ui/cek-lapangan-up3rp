@@ -20,7 +20,7 @@ header h1{font-size:16px;margin:0 0 2px}header .sub{font-size:11.5px;opacity:.85
 .ringkas{font-size:12.5px;color:var(--abu);padding:8px 14px}
 #daftar{padding:0 10px 90px}
 .kartu{background:#fff;border-radius:12px;padding:12px;margin:8px 0;box-shadow:0 1px 2px rgba(0,0,0,.06);border-left:5px solid var(--biru2)}
-.kartu.BN{border-left-color:var(--merah)}.kartu.AS{border-left-color:var(--oranye)}.kartu.GD{border-left-color:#7B5CD6}
+.kartu.GB{border-left-color:#0E8C8C}.lbl.GB{background:#0E8C8C}.kartu.BN{border-left-color:var(--merah)}.kartu.AS{border-left-color:var(--oranye)}.kartu.GD{border-left-color:#7B5CD6}
 .kartu .atas{display:flex;justify-content:space-between;align-items:center;gap:8px}
 .lbl{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;color:#fff;white-space:nowrap}
 .lbl.BN{background:var(--merah)}.lbl.AS{background:var(--oranye)}.lbl.GD{background:#7B5CD6}
@@ -75,7 +75,7 @@ th,td{padding:7px 8px;border-bottom:1px solid var(--garis);text-align:left}th{ba
   <select id="fPy"><option value="">Semua penyulang</option></select>
   <input id="fCari" type="text" placeholder="Cari ID, section, tiang, gardu, daerah…">
   <div class="chips" id="fJenis">
-    <span class="chip on" data-j="">Semua</span><span class="chip" data-j="BN">Bottleneck</span><span class="chip" data-j="AS">Asumsi model</span><span class="chip" data-j="GD">Titik gardu</span>
+    <span class="chip on" data-j="">Semua</span><span class="chip" data-j="BN">Bottleneck</span><span class="chip" data-j="AS">Asumsi model</span><span class="chip" data-j="GD">Titik gardu</span><span class="chip" data-j="GB">Beban jam 19</span>
     <span class="chip" data-s="belum">Belum dicek</span>
   </div>
 </div>
@@ -92,7 +92,7 @@ th,td{padding:7px 8px;border-bottom:1px solid var(--garis);text-align:left}th{ba
 <script src="data.js"></script>
 <script>
 const D=window.DATA, ITEMS=D.items, CFG=window.CONFIG||{};
-const JN={BN:'Bottleneck',AS:'Asumsi model',GD:'Titik gardu'};
+const JN={BN:'Bottleneck',AS:'Asumsi model',GD:'Titik gardu',GB:'Beban jam 19'};
 const simpan=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const ambil=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
 let STATUS=ambil('cl_status',{}), ANTRI=ambil('cl_antri',[]), POS=null, filt={ulp:'',py:'',j:'',belum:false,q:''};
@@ -144,7 +144,7 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
 let peta=null,lapis=null;
 function dasar(m){const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'Esri'});
   const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});sat.addTo(m);L.control.layers({'Satelit':sat,'Jalan (OSM)':osm}).addTo(m)}
-const WARNA={BN:'#D64045',AS:'#E8890C',GD:'#7B5CD6'};
+const WARNA={BN:'#D64045',AS:'#E8890C',GD:'#7B5CD6',GB:'#0E8C8C'};
 function initPeta(){if(peta)return;peta=L.map('peta',{zoomControl:true}).setView([2.3,99.9],9);dasar(peta);lapis=L.layerGroup().addTo(peta);gambarPeta(ITEMS.filter(lolos));if(POS)perbaruiSaya()}
 function gambarPeta(Ls){if(!lapis)return;lapis.clearLayers();const b=[];
   Ls.forEach(i=>{const s=stat(i.id),w=s==='selesai'?'#1E9E5A':WARNA[i.jenis];
@@ -202,7 +202,8 @@ function opsi(L,v){return '<option value="">— pilih —</option>'+L.map(x=>`<o
 function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];AKT=i;DLAMA=[];mSayaMini=cSayaMini=gSayaMini=null;
   const nav=`https://www.google.com/maps/dir/?api=1&destination=${i.titik[0]},${i.titik[1]}`;
   const nama=ambil('cl_nama','');const lap=STATUS[id];const gd=i.jenis==='GD';
-  const hasilOps=gd?['Ada','Tidak ada','Tidak bisa dicek']:['Ya, sesuai','Tidak sesuai','Tidak bisa dicek'];
+  const gb=i.jenis==='GB';
+  const hasilOps=gb?['Beban lebih','Tidak beban lebih','Tidak bisa diukur']:gd?['Ada','Tidak ada','Tidak bisa dicek']:['Ya, sesuai','Tidak sesuai','Tidak bisa dicek'];
   detail.innerHTML=`<div class="bar"><button onclick="tutup()">←</button><div><b>${esc(i.py)}</b> · ${i.id}<div style="font-size:12px;opacity:.85">${esc(i.ulp)}</div></div></div>
   <div id="live"></div><div id="mini"></div><div class="isi">
   <div class="kotak"><span class="lbl ${i.jenis}">${JN[i.jenis]}</span> <span class="lbl ${i.pri}">${i.pri}</span>
@@ -218,8 +219,12 @@ function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];AKT=i;DL
    <div class="dua"><a class="tombol utama" href="${nav}" target="_blank">🧭 Navigasi</a><button class="tombol kedua" onclick="salin('${i.titik[0]}, ${i.titik[1]}')">Salin koordinat</button></div></div>
   <div class="kotak"><h4>Lapor hasil ${lap?'<span class="st selesai">sudah dilapor '+esc(lap.waktu||'')+'</span>':''}</h4>
    <label class="f">Nama petugas</label><input type="text" id="iNama" value="${esc(nama)}" placeholder="Nama">
-   <label class="f">${gd?'Gardunya ada di titik ini?':'Sesuai?'}</label><div class="opsi">${hasilOps.map(h=>`<label><input type="radio" name="hasil" value="${h}">${h}</label>`).join('')}</div>
-   ${gd?`<label class="f">Kode gardu (papan nama)</label><input type="text" id="iKode" placeholder="${esc(i.kode||'')}">
+   ${gb?`<div id="jamInfo" class="kecil" style="font-weight:600;margin-top:8px"></div>
+   <label class="f">kVA trafo (papan nama)</label><input type="number" inputmode="numeric" id="iKva" value="${esc(i.kva||'')}">
+   <label class="f">Arus jam 19 (A)</label><div class="dua">${['R','S','T','N'].map(f=>`<div><div class="kecil">${f}</div><input type="number" inputmode="decimal" id="i${f}" oninput="hitungGB()"></div>`).join('')}</div>
+   <div id="gbHasil" class="kecil" style="font-size:14px;font-weight:700;margin-top:6px"></div>`:''}
+   <label class="f">${gb?'Hasil':gd?'Gardunya ada di titik ini?':'Sesuai?'}</label><div class="opsi">${hasilOps.map(h=>`<label><input type="radio" name="hasil" value="${h}">${h}</label>`).join('')}</div>
+   ${gb?'':gd?`<label class="f">Kode gardu (papan nama)</label><input type="text" id="iKode" placeholder="${esc(i.kode||'')}">
    <label class="f">kVA trafo</label><input type="number" inputmode="numeric" id="iKva" placeholder="${esc(i.kva||'')}">`:
    `<label class="f">Jenis kabel</label><select id="iJk">${opsi(JK,NMK[i.kab]||'')}</select>
    <label class="f">Penampang (mm²)</label><select id="iPen">${opsi(PN,i.mm||'')}</select>
@@ -231,18 +236,25 @@ function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];AKT=i;DL
    ${CFG.WA?`<button class="tombol kedua" onclick="kirimWA('${i.id}')">Kirim lewat WhatsApp</button>`:''}
   </div></div>`;
   detail.style.display='block';document.body.style.overflow='hidden';detail.scrollTop=0;mulaiLive();statusLive(i);
+  if(gb){const n=new Date(),m=n.getHours()*60+n.getMinutes(),ok=m>=1110&&m<=1200,jj=String(n.getHours()).padStart(2,'0')+'.'+String(n.getMinutes()).padStart(2,'0');
+    jamInfo.innerHTML=ok?'🟢 Sekarang jam '+jj+': pas untuk ukur beban puncak (18.30–20.00).':'🟠 Sekarang jam '+jj+'. Beban puncak diukur jam 18.30–20.00. Kalau ukur sekarang, tulis di catatan.';jamInfo.style.color=ok?'#1E9E5A':'#C77700'}
   setTimeout(()=>{if(mini){mini.remove();mini=null}mini=L.map('mini');dasar(mini);
     if(i.garis.length&&!gd)L.polyline(i.garis,{color:'#FFD400',weight:6}).addTo(mini);
     if(gd)L.polyline(i.garis,{color:'#fff',weight:2,dashArray:'4 6',opacity:.8}).addTo(mini);
-    L.circleMarker(i.titik,{radius:10,color:'#fff',weight:3,fillColor:'#D64045',fillOpacity:1}).addTo(mini).bindTooltip(gd?'Titik gardu':'Titik ganti',{permanent:true,direction:'top'});
+    L.circleMarker(i.titik,{radius:10,color:'#fff',weight:3,fillColor:gb?'#0E8C8C':'#D64045',fillOpacity:1}).addTo(mini).bindTooltip(gb?'Gardu '+esc(i.kode):gd?'Titik gardu':'Titik ganti',{permanent:true,direction:'top'});
+    if(gb)mini.setView(i.titik,17);
     if(!gd&&i.awal)L.circleMarker(i.awal,{radius:8,color:'#fff',weight:3,fillColor:'#1C7ED6',fillOpacity:1}).addTo(mini).bindTooltip('Awal',{direction:'top'});
     if(i.gis)L.circleMarker(i.gis,{radius:8,color:'#fff',weight:3,fillColor:'#8A94A3',fillOpacity:1}).addTo(mini).bindTooltip('Titik GIS',{direction:'top'});
-    const pts=[i.titik].concat(i.garis.flat());if(i.gis)pts.push(i.gis);mini.fitBounds(pts,{padding:[30,30],maxZoom:17});
+    const pts=[i.titik].concat(i.garis.flat());if(i.gis)pts.push(i.gis);if(!gb)mini.fitBounds(pts,{padding:[30,30],maxZoom:17});
     const B=L.control({position:'topright'});B.onAdd=()=>{const d=L.DomUtil.create('div');d.innerHTML='<button style="background:#fff;border:0;border-radius:8px;padding:8px 10px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.3)">📍 Saya</button>';
       d.onclick=e=>{L.DomEvent.stop(e);if(POS)mini.fitBounds([POS,i.titik],{padding:[40,40],maxZoom:18});else toast('Posisi belum didapat')};return d};B.addTo(mini);
     if(POS)perbaruiSaya()},60);
   document.getElementById('iFoto').onchange=async e=>{for(const f of [...e.target.files].slice(0,3-FOTO.length))FOTO.push(await kecilkan(f));
     pratinjau.innerHTML=FOTO.map(f=>`<img src="${f}">`).join('')}}
+function hitungGB(){const v=k=>parseFloat((document.getElementById('i'+k)||{}).value)||0;const kva=v('Kva'),s=(v('R')+v('S')+v('T'))*0.231;
+  const e=document.getElementById('gbHasil');if(!s){e.textContent='';return}const p=kva?s/kva*100:0;
+  e.innerHTML='Beban terukur: '+s.toFixed(1).replace('.',',')+' kVA'+(kva?' = <span style="color:'+(p>100?'#D64045':p>80?'#C77700':'#1E9E5A')+'">'+Math.round(p)+'%</span> dari '+kva+' kVA':'');
+  const r=document.querySelector(`input[name="hasil"][value="${p>100?'Beban lebih':'Tidak beban lebih'}"]`);if(r&&kva)r.checked=true}
 function tutup(){AKT=null;detail.style.display='none';document.body.style.overflow='';render()}
 function salin(t){navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>toast('Koordinat disalin'),()=>toast(t))}
 function kecilkan(f){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1280/Math.max(im.width,im.height));
@@ -256,8 +268,9 @@ async function kumpul(id){const i=ITEMS.find(x=>x.id===id);const nama=nilai('iNa
   simpan('cl_nama',nama);toast('Merekam posisi GPS…');const g=(await posisiSekarang())||(POS?{lat:POS[0],lon:POS[1],akurasi:AKU||''}:null);if(g){POS=[g.lat,g.lon];AKU=g.akurasi||AKU}
   const h=g?hitungPosisi(i):null;
   return {id,jenis:i.jenis,ulp:i.ulp,penyulang:i.py,section:i.section.join(', '),
-    data:i.jenis==='GD'?(i.kode+' '+(i.kva||'?')+' kVA'):((NMK[i.kab]||'')+' '+(i.mm||'')+(i.mm?' mm²':'')),tiang_data:(i.tiang_awal?i.tiang_awal+' → '+i.tiang_akhir:''),
+    data:i.jenis==='GB'?(i.kode+' '+i.kva+' kVA, model jam 19 '+i.bp+'%'):i.jenis==='GD'?(i.kode+' '+(i.kva||'?')+' kVA'):((NMK[i.kab]||'')+' '+(i.mm||'')+(i.mm?' mm²':'')),tiang_data:(i.tiang_awal?i.tiang_awal+' → '+i.tiang_akhir:''),
     titik:i.titik.join(','),petugas:nama,hasil,jenis_kabel:nilai('iJk'),penampang:nilai('iPen'),jumlah_tiang:nilai('iNt'),sirkit:radio('sirkit'),kode_gardu:nilai('iKode'),kva:nilai('iKva'),
+    iR:nilai('iR'),iS:nilai('iS'),iT:nilai('iT'),iN:nilai('iN'),kva_ukur:(i.jenis==='GB'&&nilai('iR')?((+nilai('iR')||0)+(+nilai('iS')||0)+(+nilai('iT')||0))*0.231:'')&&(((+nilai('iR')||0)+(+nilai('iS')||0)+(+nilai('iT')||0))*0.231).toFixed(1),
     catatan:nilai('iCat'),gps:g?g.lat.toFixed(6)+','+g.lon.toFixed(6):'',akurasi:g?g.akurasi:'',jarak_m:g?Math.round(jarak([g.lat,g.lon],i.titik)*1000):'',posisi:h?h.teks:'',
     waktu:new Date().toLocaleString('id-ID'),foto:FOTO.slice(0,3)}}
 async function kirim(id){const r=await kumpul(id);if(!r)return;ANTRI=ANTRI.filter(a=>a.id!==id);ANTRI.push(r);simpan('cl_antri',ANTRI);await kirimAntri(true);tutup()}
@@ -267,12 +280,12 @@ async function kirimAntri(tampil){if(!ANTRI.length)return;
       const t=await res.text();if(!/"ok"\s*:\s*true/.test(t))throw new Error(t.slice(0,80));STATUS[r.id]={waktu:r.waktu,petugas:r.petugas,hasil:r.hasil}}catch(e){sisa.push(r)}}
   const n=ANTRI.length-sisa.length;ANTRI=sisa;simpan('cl_antri',ANTRI);simpan('cl_status',STATUS);
   if(tampil)toast(n?n+' laporan terkirim'+(sisa.length?', '+sisa.length+' menunggu sinyal':''):'Belum terkirim (sinyal?). Disimpan di HP, akan dikirim ulang otomatis.',4000);render()}
-function kirimWA(id){kumpul(id).then(r=>{if(!r)return;const t=`*CEK LAPANGAN ${r.id}*\nULP: ${r.ulp}\nPenyulang: ${r.penyulang}\nSection: ${r.section}\nData: ${r.data}\nHasil: ${r.hasil}\n`+(r.jenis==='GD'?`Gardu: ${r.kode_gardu} ${r.kva} kVA\n`:`Lapangan: ${r.jenis_kabel} ${r.penampang} mm² · ${r.jumlah_tiang||'-'} tiang${r.sirkit?' · '+r.sirkit:''}\n`)+`Catatan: ${r.catatan}\nGPS: ${r.gps} (±${r.akurasi} m, ${r.posisi})\nPetugas: ${r.petugas} · ${r.waktu}`;
+function kirimWA(id){kumpul(id).then(r=>{if(!r)return;const t=`*CEK LAPANGAN ${r.id}*\nULP: ${r.ulp}\nPenyulang: ${r.penyulang}\nSection: ${r.section}\nData: ${r.data}\nHasil: ${r.hasil}\n`+(r.jenis==='GB'?`kVA ${r.kva} · Arus R ${r.iR} S ${r.iS} T ${r.iT} N ${r.iN} A · ${r.kva_ukur} kVA\n`:r.jenis==='GD'?`Gardu: ${r.kode_gardu} ${r.kva} kVA\n`:`Lapangan: ${r.jenis_kabel} ${r.penampang} mm² · ${r.jumlah_tiang||'-'} tiang${r.sirkit?' · '+r.sirkit:''}\n`)+`Catatan: ${r.catatan}\nGPS: ${r.gps} (±${r.akurasi} m, ${r.posisi})\nPetugas: ${r.petugas} · ${r.waktu}`;
   STATUS[id]={waktu:r.waktu,petugas:r.petugas,hasil:r.hasil};simpan('cl_status',STATUS);window.open('https://wa.me/'+(CFG.WA||'')+'?text='+encodeURIComponent(t),'_blank')})}
 async function tampilRekap(){let rows=[];
   if(CFG.ENDPOINT){rekap.innerHTML='<p class="ringkas">Memuat rekap dari server…</p>';try{const r=await fetch(CFG.ENDPOINT+'?aksi=rekap&kunci='+encodeURIComponent(CFG.KUNCI||''));const j=await r.json();rows=j.data||[];
     rows.forEach(x=>{if(!STATUS[x.id])STATUS[x.id]={waktu:x.waktu,petugas:x.petugas,hasil:x.hasil}});simpan('cl_status',STATUS)}catch(e){}}
-  const per={};ITEMS.forEach(i=>{const k=i.ulp;per[k]=per[k]||{t:0,s:0,BN:0,AS:0,GD:0};per[k].t++;if(STATUS[i.id]){per[k].s++;per[k][i.jenis]++}});
+  const per={};ITEMS.forEach(i=>{const k=i.ulp;per[k]=per[k]||{t:0,s:0,BN:0,AS:0,GD:0,GB:0};per[k].t++;if(STATUS[i.id]){per[k].s++;per[k][i.jenis]++}});
   rekap.innerHTML=`<div class="kotak"><h4>Progres per ULP</h4><table><tr><th>ULP</th><th>Titik</th><th>Selesai</th><th>%</th></tr>${Object.keys(per).sort().map(k=>`<tr><td>${esc(k)}</td><td>${per[k].t}</td><td>${per[k].s}</td><td>${Math.round(per[k].s/per[k].t*100)}%</td></tr>`).join('')}</table></div>
   <div class="kotak"><h4>Laporan terakhir</h4>${rows.length?`<table><tr><th>ID</th><th>Hasil</th><th>Petugas</th><th>Waktu</th></tr>${rows.slice(-40).reverse().map(x=>`<tr><td>${esc(x.id)}</td><td>${esc(x.hasil)}</td><td>${esc(x.petugas)}</td><td>${esc(x.waktu)}</td></tr>`).join('')}</table>`:'<div class="kecil">'+(CFG.ENDPOINT?'Belum ada laporan.':'Server belum diatur, rekap hanya dari HP ini.')+'</div>'}</div>
   ${ANTRI.length?`<button class="tombol utama" onclick="kirimAntri(true)">Kirim ulang ${ANTRI.length} laporan tertunda</button>`:''}

@@ -3,7 +3,7 @@
 const KUNCI = "";                 // samakan dengan KUNCI di config.js (boleh kosong)
 const NAMA_FOLDER = "FOTO_CEK_LAPANGAN_UP3RP";
 const KOLOM = ["diterima","id","jenis","ulp","penyulang","section","data","tiang_data","titik","petugas","hasil",
-  "jenis_kabel","penampang","jumlah_tiang","sirkit","kode_gardu","kva","catatan","gps","akurasi","jarak_m","posisi","waktu","foto"];
+  "jenis_kabel","penampang","jumlah_tiang","sirkit","kode_gardu","kva","iR","iS","iT","iN","kva_ukur","catatan","gps","akurasi","jarak_m","posisi","waktu","foto"];
 
 function lembar_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
