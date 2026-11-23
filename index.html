@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0B4F8A">
+<title>Cek Lapangan UP3 Rantau Prapat</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--biru:#0B4F8A;--biru2:#1C7ED6;--kuning:#FFC400;--latar:#F2F5F9;--teks:#1B2430;--abu:#6B7785;--garis:#DDE3EA;--hijau:#1E9E5A;--merah:#D64045;--oranye:#E8890C}
+*{box-sizing:border-box}html,body{margin:0;height:100%;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--teks);background:var(--latar)}
+header{position:sticky;top:0;z-index:1000;background:var(--biru);color:#fff;padding:10px 14px 0}
+header h1{font-size:16px;margin:0 0 2px}header .sub{font-size:11.5px;opacity:.85}
+.tabs{display:flex;margin-top:8px}.tabs button{flex:1;background:none;border:0;color:#cfe2f5;font-weight:600;font-size:14px;padding:10px 0;border-bottom:3px solid transparent}
+.tabs button.on{color:#fff;border-bottom-color:var(--kuning)}
+.filter{padding:10px 12px;background:#fff;border-bottom:1px solid var(--garis);display:flex;flex-wrap:wrap;gap:6px}
+.filter select,.filter input{font-size:14px;padding:8px;border:1px solid var(--garis);border-radius:8px;background:#fff;flex:1 1 140px;min-width:0}
+.chips{display:flex;gap:6px;flex-wrap:wrap;width:100%}.chip{border:1px solid var(--garis);background:#fff;border-radius:16px;padding:6px 10px;font-size:12.5px}
+.chip.on{background:var(--biru2);color:#fff;border-color:var(--biru2)}
+.ringkas{font-size:12.5px;color:var(--abu);padding:8px 14px}
+#daftar{padding:0 10px 90px}
+.kartu{background:#fff;border-radius:12px;padding:12px;margin:8px 0;box-shadow:0 1px 2px rgba(0,0,0,.06);border-left:5px solid var(--biru2)}
+.kartu.BN{border-left-color:var(--merah)}.kartu.AS{border-left-color:var(--oranye)}.kartu.GD{border-left-color:#7B5CD6}
+.kartu .atas{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.lbl{font-size:11px;font-weight:700;border-radius:6px;padding:2px 7px;color:#fff;white-space:nowrap}
+.lbl.BN{background:var(--merah)}.lbl.AS{background:var(--oranye)}.lbl.GD{background:#7B5CD6}
+.lbl.P1{background:#B3261E}.lbl.P2{background:#C77700}.lbl.P3{background:#5F6B7A}
+.st{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:10px;background:#EEF1F5;color:var(--abu)}
+.st.selesai{background:#DFF5E8;color:var(--hijau)}.st.antri{background:#FFF1D6;color:#9A6200}
+.kartu h3{font-size:14.5px;margin:6px 0 4px}.kartu .meta{font-size:12.5px;color:var(--abu);line-height:1.45}
+.kartu .meta b{color:var(--teks)}
+#peta{height:calc(100vh - 150px);display:none}
+#detail{position:fixed;inset:0;background:var(--latar);z-index:2000;overflow:auto;display:none}
+#detail .bar{position:sticky;top:0;background:var(--biru);color:#fff;display:flex;align-items:center;gap:10px;padding:12px 14px;z-index:5}
+#detail .bar button{background:none;border:0;color:#fff;font-size:22px}
+#mini{height:42vh}
+.isi{padding:12px 14px 120px}
+.kotak{background:#fff;border-radius:12px;padding:12px;margin-bottom:10px}
+.kotak h4{margin:0 0 8px;font-size:13px;color:var(--biru);text-transform:uppercase;letter-spacing:.3px}
+.baris{display:flex;justify-content:space-between;gap:10px;font-size:13.5px;padding:5px 0;border-bottom:1px dashed var(--garis)}
+.baris:last-child{border-bottom:0}.baris span:first-child{color:var(--abu)}.baris span:last-child{text-align:right;font-weight:600}
+.tombol{display:block;width:100%;text-align:center;padding:13px;border-radius:10px;border:0;font-size:15px;font-weight:700;margin-top:8px;text-decoration:none}
+.tombol.utama{background:var(--biru2);color:#fff}.tombol.kedua{background:#fff;color:var(--biru2);border:1.5px solid var(--biru2)}.tombol.hijau{background:var(--hijau);color:#fff}
+.dua{display:flex;gap:8px}.dua>*{flex:1}
+label.f{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+.isi select,.isi input[type=text],.isi textarea{width:100%;font-size:15px;padding:10px;border:1px solid var(--garis);border-radius:8px;background:#fff}
+.opsi{display:flex;flex-wrap:wrap;gap:6px}.opsi label{border:1px solid var(--garis);border-radius:8px;padding:8px 10px;font-size:13.5px;background:#fff}
+.opsi input{margin-right:5px}
+.foto{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}.foto img{width:84px;height:84px;object-fit:cover;border-radius:8px}
+.kecil{font-size:12px;color:var(--abu)}
+#rekap{display:none;padding:10px 12px 90px}
+table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;font-size:12.5px}
+th,td{padding:7px 8px;border-bottom:1px solid var(--garis);text-align:left}th{background:#EAF2FB}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:13.5px;z-index:5000;display:none;max-width:90vw}
+.gps{position:fixed;right:14px;bottom:18px;z-index:1500;background:#fff;border-radius:24px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:10px 14px;font-size:13px;font-weight:600;color:var(--biru)}
+.leaflet-popup-content{font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="judul">Cek Lapangan UP3 Rantau Prapat</h1>
+  <div class="sub" id="sub"></div>
+  <div class="tabs"><button class="on" data-t="daftar">Daftar</button><button data-t="peta">Peta</button><button data-t="rekap">Rekap</button></div>
+</header>
+<div class="filter" id="filter">
+  <select id="fUlp"><option value="">Semua ULP</option></select>
+  <select id="fPy"><option value="">Semua penyulang</option></select>
+  <input id="fCari" type="text" placeholder="Cari ID, section, tiang, gardu, daerah…">
+  <div class="chips" id="fJenis">
+    <span class="chip on" data-j="">Semua</span><span class="chip" data-j="BN">Bottleneck</span><span class="chip" data-j="AS">Asumsi model</span><span class="chip" data-j="GD">Titik gardu</span>
+    <span class="chip" data-s="belum">Belum dicek</span>
+  </div>
+</div>
+<div class="ringkas" id="ringkas"></div>
+<div id="daftar"></div>
+<div id="peta"></div>
+<div id="rekap"></div>
+<div id="detail"></div>
+<div class="gps" id="gpsBtn">📍 Posisi saya</div>
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="config.js"></script>
+<script src="data.js"></script>
+<script>
+const D=window.DATA, ITEMS=D.items, CFG=window.CONFIG||{};
+const JN={BN:'Bottleneck',AS:'Asumsi model',GD:'Titik gardu'};
+const simpan=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const ambil=(k,d)=>{try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}};
+let STATUS=ambil('cl_status',{}), ANTRI=ambil('cl_antri',[]), POS=null, filt={ulp:'',py:'',j:'',belum:false,q:''};
+document.getElementById('judul').textContent=D.meta.judul;
+document.getElementById('sub').textContent='Data '+D.meta.versi+' · '+ITEMS.length+' titik cek';
+function toast(t,ms){const e=document.getElementById('toast');e.textContent=t;e.style.display='block';clearTimeout(e._t);e._t=setTimeout(()=>e.style.display='none',ms||2600)}
+function jarak(a,b){const r=Math.PI/180,dl=(b[0]-a[0])*r,dn=(b[1]-a[1])*r;const x=Math.sin(dl/2)**2+Math.cos(a[0]*r)*Math.cos(b[0]*r)*Math.sin(dn/2)**2;return 6371*2*Math.asin(Math.sqrt(x))}
+function fkm(k){return k<1?Math.round(k*1000)+' m':k.toFixed(1).replace('.',',')+' km'}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+// filter options
+const ulps=[...new Set(ITEMS.map(i=>i.ulp))].sort();
+ulps.forEach(u=>fUlp.add(new Option(u,u)));
+function isiPy(){const ps=[...new Set(ITEMS.filter(i=>!filt.ulp||i.ulp===filt.ulp).map(i=>i.py))].sort();fPy.length=1;ps.forEach(p=>fPy.add(new Option(p,p)));fPy.value=ps.includes(filt.py)?filt.py:'';filt.py=fPy.value}
+isiPy();
+fUlp.onchange=()=>{filt.ulp=fUlp.value;simpan('cl_ulp',filt.ulp);isiPy();render()};
+fPy.onchange=()=>{filt.py=fPy.value;render()};
+fCari.oninput=()=>{filt.q=fCari.value.toLowerCase();render()};
+document.querySelectorAll('#fJenis .chip').forEach(c=>c.onclick=()=>{
+  if(c.dataset.s){filt.belum=!filt.belum;c.classList.toggle('on',filt.belum)}
+  else{document.querySelectorAll('#fJenis .chip[data-j]').forEach(x=>x.classList.remove('on'));c.classList.add('on');filt.j=c.dataset.j}
+  render()});
+const u0=ambil('cl_ulp','');if(u0&&ulps.includes(u0)){filt.ulp=u0;fUlp.value=u0;isiPy()}
+function stat(id){if(ANTRI.some(a=>a.id===id))return 'antri';return STATUS[id]?'selesai':''}
+function lolos(i){
+  if(filt.ulp&&i.ulp!==filt.ulp)return false;if(filt.py&&i.py!==filt.py)return false;if(filt.j&&i.jenis!==filt.j)return false;
+  if(filt.belum&&stat(i.id))return false;
+  if(filt.q){const s=(i.id+' '+i.py+' '+i.judul+' '+i.daerah+' '+i.section.join(' ')+' '+i.tiang_awal+' '+i.tiang_akhir+' '+i.info).toLowerCase();if(!s.includes(filt.q))return false}
+  return true}
+function urut(a,b){const pr={P1:0,P2:1,P3:2};if(POS)return jarak(POS,a.titik)-jarak(POS,b.titik);return (pr[a.pri]-pr[b.pri])||(b.hemat-a.hemat)}
+function render(){
+  const L=ITEMS.filter(lolos).sort(urut);const sel=L.filter(i=>stat(i.id)==='selesai').length;
+  ringkas.textContent=L.length+' titik · '+sel+' sudah dilapor'+(ANTRI.length?' · '+ANTRI.length+' menunggu kirim':'')+(POS?' · urut terdekat':' · urut prioritas');
+  daftar.innerHTML=L.slice(0,300).map(i=>{const s=stat(i.id);return `<div class="kartu ${i.jenis}" data-id="${i.id}">
+   <div class="atas"><div><span class="lbl ${i.jenis}">${JN[i.jenis]}</span> <span class="lbl ${i.pri}">${i.pri}</span> <b style="font-size:12.5px">${i.id}</b></div>
+   <span class="st ${s}">${s==='selesai'?'✔ Selesai':s==='antri'?'⏳ Antri':'Belum'}</span></div>
+   <h3>${esc(i.py)} · ${esc(i.judul)}</h3>
+   <div class="meta"><b>${esc(i.ulp)}</b> · ${esc(i.daerah)}${i.section.length?'<br>Section: <b>'+esc(i.section.join(', '))+'</b>':''}
+   ${i.tiang_awal?'<br>Tiang: <b>'+esc(i.tiang_awal)+'</b> → <b>'+esc(i.tiang_akhir)+'</b>':''}
+   ${POS?'<br>Jarak dari posisi: <b>'+fkm(jarak(POS,i.titik))+'</b>':''}</div></div>`}).join('')||'<p class="ringkas">Tidak ada titik untuk filter ini.</p>';
+  daftar.querySelectorAll('.kartu').forEach(k=>k.onclick=()=>buka(k.dataset.id));
+  if(peta)gambarPeta(L)}
+// tabs
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  const t=b.dataset.t;daftar.style.display=t==='daftar'?'block':'none';document.getElementById('peta').style.display=t==='peta'?'block':'none';
+  rekap.style.display=t==='rekap'?'block':'none';filter.style.display=t==='rekap'?'none':'flex';ringkas.style.display=t==='rekap'?'none':'block';
+  if(t==='peta'){initPeta();setTimeout(()=>peta.invalidateSize(),50)}if(t==='rekap')tampilRekap()});
+// peta
+let peta=null,lapis=null;
+function dasar(m){const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'Esri'});
+  const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});sat.addTo(m);L.control.layers({'Satelit':sat,'Jalan (OSM)':osm}).addTo(m)}
+const WARNA={BN:'#D64045',AS:'#E8890C',GD:'#7B5CD6'};
+function initPeta(){if(peta)return;peta=L.map('peta',{zoomControl:true}).setView([2.3,99.9],9);dasar(peta);lapis=L.layerGroup().addTo(peta);gambarPeta(ITEMS.filter(lolos))}
+function gambarPeta(Ls){if(!lapis)return;lapis.clearLayers();const b=[];
+  Ls.forEach(i=>{const s=stat(i.id),w=s==='selesai'?'#1E9E5A':WARNA[i.jenis];
+    if(i.garis.length)L.polyline(i.garis,{color:w,weight:4,opacity:.9}).addTo(lapis);
+    const m=L.circleMarker(i.titik,{radius:8,color:'#fff',weight:2,fillColor:w,fillOpacity:1}).addTo(lapis);
+    m.bindPopup(`<b>${i.id}</b> · ${esc(i.py)}<br>${esc(i.judul)}<br><a href="#" onclick="buka('${i.id}');return false">Buka detail</a>`);b.push(i.titik)});
+  if(POS)L.circleMarker(POS,{radius:7,color:'#fff',weight:3,fillColor:'#1C7ED6',fillOpacity:1}).addTo(lapis);
+  if(b.length)peta.fitBounds(b,{padding:[30,30],maxZoom:15})}
+// GPS
+gpsBtn.onclick=()=>{if(!navigator.geolocation)return toast('GPS tidak tersedia di HP ini');toast('Mencari posisi…');
+  navigator.geolocation.getCurrentPosition(p=>{POS=[p.coords.latitude,p.coords.longitude];toast('Posisi didapat (±'+Math.round(p.coords.accuracy)+' m). Daftar diurutkan dari yang terdekat.');render()},
+  e=>toast('Gagal ambil posisi: '+e.message),{enableHighAccuracy:true,timeout:15000})};
+// detail
+let mini=null,FOTO=[];
+function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];
+  const nav=`https://www.google.com/maps/dir/?api=1&destination=${i.titik[0]},${i.titik[1]}`;
+  const nama=ambil('cl_nama','');const lap=STATUS[id];
+  const pen=['35','50','70','95','120','150','240','SKTM 150','SKTM 240','MVTIC','Lainnya'];
+  detail.innerHTML=`<div class="bar"><button onclick="tutup()">←</button><div><b>${i.id}</b> · ${esc(i.py)}<div style="font-size:12px;opacity:.85">${esc(i.ulp)}</div></div></div>
+  <div id="mini"></div><div class="isi">
+  <div class="kotak"><span class="lbl ${i.jenis}">${JN[i.jenis]}</span> <span class="lbl ${i.pri}">${i.pri}</span><h3 style="margin:8px 0 4px;font-size:16px">${esc(i.judul)}</h3><div class="kecil">${esc(i.info)}</div></div>
+  <div class="kotak"><h4>Lokasi</h4>
+   <div class="baris"><span>ULP</span><span>${esc(i.ulp)}</span></div>
+   <div class="baris"><span>Penyulang</span><span>${esc(i.py)}</span></div>
+   ${i.section.length?`<div class="baris"><span>Section</span><span>${esc(i.section.join(', '))}</span></div>`:''}
+   <div class="baris"><span>Daerah</span><span>${esc(i.daerah)}</span></div>
+   ${i.tiang_awal?`<div class="baris"><span>Tiang awal</span><span>${esc(i.tiang_awal)}</span></div><div class="baris"><span>Tiang akhir / titik ganti</span><span>${esc(i.tiang_akhir)}</span></div>`:''}
+   <div class="baris"><span>Titik utama</span><span>${i.titik[0]}, ${i.titik[1]}</span></div>
+   ${i.gis?`<div class="baris"><span>Titik GIS (abu-abu)</span><span>${i.gis[0]}, ${i.gis[1]}</span></div>`:''}
+   ${POS?`<div class="baris"><span>Jarak dari posisi</span><span>${fkm(jarak(POS,i.titik))}</span></div>`:''}
+   <div class="dua"><a class="tombol utama" href="${nav}" target="_blank">🧭 Navigasi</a><button class="tombol kedua" onclick="salin('${i.titik[0]}, ${i.titik[1]}')">Salin koordinat</button></div></div>
+  <div class="kotak"><h4>Yang dicek</h4><div style="font-size:14px;line-height:1.5">${esc(i.cek)}</div></div>
+  <div class="kotak"><h4>Lapor hasil ${lap?'<span class="st selesai">sudah dilapor '+esc(lap.waktu||'')+'</span>':''}</h4>
+   <label class="f">Nama petugas</label><input type="text" id="iNama" value="${esc(nama)}" placeholder="Nama & ULP">
+   <label class="f">Hasil</label><div class="opsi" id="iHasil">${['Sesuai data','Tidak sesuai','Tidak ditemukan','Tidak bisa diakses'].map(h=>`<label><input type="radio" name="hasil" value="${h}">${h}</label>`).join('')}</div>
+   ${i.jenis!=='GD'?`<label class="f">Penampang di lapangan (mm²)</label><select id="iPen"><option value="">— pilih —</option>${pen.map(p=>`<option>${p}</option>`).join('')}</select>
+   <label class="f">Penampang ruas sesudahnya (hilir)</label><select id="iPen2"><option value="">— pilih —</option>${pen.map(p=>`<option>${p}</option>`).join('')}</select>
+   <label class="f">Jumlah sirkit di tiang</label><div class="opsi">${['1','2','3+'].map(h=>`<label><input type="radio" name="sirkit" value="${h}">${h}</label>`).join('')}</div>`:
+   `<label class="f">Kode gardu di papan nama</label><input type="text" id="iKode" placeholder="contoh: TB192"><label class="f">kVA di lapangan</label><input type="text" id="iKva" placeholder="contoh: 100">`}
+   <label class="f">Tiang / lokasi yang dicek</label><input type="text" id="iTiang" placeholder="nomor tiang atau patokan">
+   <label class="f">Catatan</label><textarea id="iCat" rows="3" placeholder="kondisi, sambungan, temuan lain"></textarea>
+   <label class="f">Foto (maks 3)</label><input type="file" id="iFoto" accept="image/*" capture="environment" multiple><div class="foto" id="pratinjau"></div>
+   <div class="kecil" id="iGps">Posisi saat lapor akan direkam otomatis.</div>
+   <button class="tombol hijau" onclick="kirim('${i.id}')">Kirim laporan</button>
+   ${CFG.WA?`<button class="tombol kedua" onclick="kirimWA('${i.id}')">Kirim lewat WhatsApp</button>`:''}
+  </div></div>`;
+  detail.style.display='block';document.body.style.overflow='hidden';
+  setTimeout(()=>{if(mini){mini.remove();mini=null}mini=L.map('mini');dasar(mini);
+    if(i.garis.length)L.polyline(i.garis,{color:'#FFD400',weight:6}).addTo(mini);
+    L.circleMarker(i.titik,{radius:10,color:'#fff',weight:3,fillColor:'#D64045',fillOpacity:1}).addTo(mini).bindTooltip(i.jenis==='GD'?'Titik ukur':'Titik ganti',{permanent:true,direction:'top'});
+    if(i.jenis!=='GD'&&i.awal)L.circleMarker(i.awal,{radius:8,color:'#fff',weight:3,fillColor:'#1C7ED6',fillOpacity:1}).addTo(mini).bindTooltip('Awal',{direction:'top'});
+    if(i.gis)L.circleMarker(i.gis,{radius:8,color:'#fff',weight:3,fillColor:'#8A94A3',fillOpacity:1}).addTo(mini).bindTooltip('Titik GIS',{direction:'top'});
+    if(POS)L.circleMarker(POS,{radius:7,color:'#fff',weight:3,fillColor:'#1C7ED6',fillOpacity:1}).addTo(mini).bindTooltip('Saya');
+    const pts=[i.titik].concat(i.garis.flat());if(i.gis)pts.push(i.gis);mini.fitBounds(pts,{padding:[30,30],maxZoom:17})},60);
+  document.getElementById('iFoto').onchange=async e=>{for(const f of [...e.target.files].slice(0,3-FOTO.length))FOTO.push(await kecilkan(f));
+    pratinjau.innerHTML=FOTO.map(f=>`<img src="${f}">`).join('')}}
+function tutup(){detail.style.display='none';document.body.style.overflow='';render()}
+function salin(t){navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>toast('Koordinat disalin'),()=>toast(t))}
+function kecilkan(f){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1280/Math.max(im.width,im.height));
+  const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',0.7))};im.src=r.result};r.readAsDataURL(f)})}
+function posisiSekarang(){return new Promise(res=>{if(!navigator.geolocation)return res(null);
+  navigator.geolocation.getCurrentPosition(p=>res({lat:p.coords.latitude,lon:p.coords.longitude,akurasi:Math.round(p.coords.accuracy)}),()=>res(null),{enableHighAccuracy:true,timeout:12000})})}
+function nilai(id){const e=document.getElementById(id);return e?e.value.trim():''}
+function radio(n){const e=document.querySelector(`input[name="${n}"]:checked`);return e?e.value:''}
+async function kumpul(id){const i=ITEMS.find(x=>x.id===id);const nama=nilai('iNama');const hasil=radio('hasil');
+  if(!nama){toast('Isi nama petugas dulu');return null}if(!hasil){toast('Pilih hasil pengecekan');return null}
+  simpan('cl_nama',nama);toast('Merekam posisi GPS…');const g=await posisiSekarang();if(g)POS=[g.lat,g.lon];
+  return {id,jenis:i.jenis,ulp:i.ulp,penyulang:i.py,judul:i.judul,section:i.section.join(', '),tiang_data:(i.tiang_awal?i.tiang_awal+' → '+i.tiang_akhir:''),
+    titik:i.titik.join(','),petugas:nama,hasil,penampang:nilai('iPen'),penampang_hilir:nilai('iPen2'),sirkit:radio('sirkit'),kode_gardu:nilai('iKode'),kva:nilai('iKva'),
+    tiang_dicek:nilai('iTiang'),catatan:nilai('iCat'),gps:g?g.lat.toFixed(6)+','+g.lon.toFixed(6):'',akurasi:g?g.akurasi:'',jarak_m:g?Math.round(jarak([g.lat,g.lon],i.titik)*1000):'',
+    waktu:new Date().toLocaleString('id-ID'),foto:FOTO.slice(0,3)}}
+async function kirim(id){const r=await kumpul(id);if(!r)return;ANTRI=ANTRI.filter(a=>a.id!==id);ANTRI.push(r);simpan('cl_antri',ANTRI);await kirimAntri(true);tutup()}
+async function kirimAntri(tampil){if(!ANTRI.length)return;
+  if(!CFG.ENDPOINT){if(tampil)toast('Laporan disimpan di HP. Alamat server belum diisi (config.js).',4000);return}
+  const sisa=[];for(const r of ANTRI){try{const res=await fetch(CFG.ENDPOINT,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(Object.assign({kunci:CFG.KUNCI||''},r))});
+      const t=await res.text();if(!/"ok"\s*:\s*true/.test(t))throw new Error(t.slice(0,80));STATUS[r.id]={waktu:r.waktu,petugas:r.petugas,hasil:r.hasil}}catch(e){sisa.push(r)}}
+  const n=ANTRI.length-sisa.length;ANTRI=sisa;simpan('cl_antri',ANTRI);simpan('cl_status',STATUS);
+  if(tampil)toast(n?n+' laporan terkirim'+(sisa.length?', '+sisa.length+' menunggu sinyal':''):'Belum terkirim (sinyal?). Disimpan di HP, akan dikirim ulang otomatis.',4000);render()}
+function kirimWA(id){kumpul(id).then(r=>{if(!r)return;const t=`*CEK LAPANGAN ${r.id}*\nULP: ${r.ulp}\nPenyulang: ${r.penyulang}\n${r.judul}\nSection: ${r.section}\nTiang data: ${r.tiang_data}\nHasil: ${r.hasil}\nPenampang: ${r.penampang} / hilir ${r.penampang_hilir} · sirkit ${r.sirkit}\nGardu: ${r.kode_gardu} ${r.kva}\nTiang dicek: ${r.tiang_dicek}\nCatatan: ${r.catatan}\nGPS: ${r.gps} (±${r.akurasi} m, ${r.jarak_m} m dari titik)\nPetugas: ${r.petugas} · ${r.waktu}`;
+  STATUS[id]={waktu:r.waktu,petugas:r.petugas,hasil:r.hasil};simpan('cl_status',STATUS);window.open('https://wa.me/'+(CFG.WA||'')+'?text='+encodeURIComponent(t),'_blank')})}
+async function tampilRekap(){let rows=[];
+  if(CFG.ENDPOINT){rekap.innerHTML='<p class="ringkas">Memuat rekap dari server…</p>';try{const r=await fetch(CFG.ENDPOINT+'?aksi=rekap&kunci='+encodeURIComponent(CFG.KUNCI||''));const j=await r.json();rows=j.data||[];
+    rows.forEach(x=>{if(!STATUS[x.id])STATUS[x.id]={waktu:x.waktu,petugas:x.petugas,hasil:x.hasil}});simpan('cl_status',STATUS)}catch(e){}}
+  const per={};ITEMS.forEach(i=>{const k=i.ulp;per[k]=per[k]||{t:0,s:0,BN:0,AS:0,GD:0};per[k].t++;if(STATUS[i.id]){per[k].s++;per[k][i.jenis]++}});
+  rekap.innerHTML=`<div class="kotak"><h4>Progres per ULP</h4><table><tr><th>ULP</th><th>Titik</th><th>Selesai</th><th>%</th></tr>${Object.keys(per).sort().map(k=>`<tr><td>${esc(k)}</td><td>${per[k].t}</td><td>${per[k].s}</td><td>${Math.round(per[k].s/per[k].t*100)}%</td></tr>`).join('')}</table></div>
+  <div class="kotak"><h4>Laporan terakhir</h4>${rows.length?`<table><tr><th>ID</th><th>Hasil</th><th>Petugas</th><th>Waktu</th></tr>${rows.slice(-40).reverse().map(x=>`<tr><td>${esc(x.id)}</td><td>${esc(x.hasil)}</td><td>${esc(x.petugas)}</td><td>${esc(x.waktu)}</td></tr>`).join('')}</table>`:'<div class="kecil">'+(CFG.ENDPOINT?'Belum ada laporan.':'Server belum diatur, rekap hanya dari HP ini.')+'</div>'}</div>
+  ${ANTRI.length?`<button class="tombol utama" onclick="kirimAntri(true)">Kirim ulang ${ANTRI.length} laporan tertunda</button>`:''}
+  <div class="kotak kecil" style="margin-top:10px">Sumber data: ${esc(D.meta.sumber)}.</div>`}
+window.addEventListener('online',()=>kirimAntri(true));setInterval(()=>kirimAntri(false),60000);
+render();kirimAntri(false);
+</script>
+</body>
+</html>
