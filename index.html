@@ -54,6 +54,14 @@ th,td{padding:7px 8px;border-bottom:1px solid var(--garis);text-align:left}th{ba
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:20px;font-size:13.5px;z-index:5000;display:none;max-width:90vw}
 .gps{position:fixed;right:14px;bottom:18px;z-index:1500;background:#fff;border-radius:24px;box-shadow:0 2px 8px rgba(0,0,0,.2);padding:10px 14px;font-size:13px;font-weight:600;color:var(--biru)}
 .leaflet-popup-content{font-size:12.5px}
+.tanya{font-size:18px;font-weight:700;line-height:1.35;margin:8px 0 4px}
+#live{position:sticky;top:52px;z-index:4;margin:0;padding:10px 14px;font-size:15px;font-weight:700;color:#fff;background:#5F6B7A;display:flex;align-items:center;gap:10px}
+#live .panah{font-size:26px;line-height:1;display:inline-block;transition:transform .3s}
+#live .sub2{font-size:12px;font-weight:500;opacity:.9}
+#live.pas{background:#1E9E5A}#live.kurang{background:#C77700}#live.lebih{background:#D64045}#live.jauh{background:#0B4F8A}
+.saya{width:18px;height:18px;border-radius:50%;background:#1C7ED6;border:3px solid #fff;box-shadow:0 0 0 0 rgba(28,126,214,.6);animation:denyut 1.8s infinite}
+@keyframes denyut{0%{box-shadow:0 0 0 0 rgba(28,126,214,.55)}70%{box-shadow:0 0 0 16px rgba(28,126,214,0)}100%{box-shadow:0 0 0 0 rgba(28,126,214,0)}}
+.isi input[type=number]{width:100%;font-size:15px;padding:10px;border:1px solid var(--garis);border-radius:8px;background:#fff}
 </style>
 </head>
 <body>
@@ -111,7 +119,7 @@ function stat(id){if(ANTRI.some(a=>a.id===id))return 'antri';return STATUS[id]?'
 function lolos(i){
   if(filt.ulp&&i.ulp!==filt.ulp)return false;if(filt.py&&i.py!==filt.py)return false;if(filt.j&&i.jenis!==filt.j)return false;
   if(filt.belum&&stat(i.id))return false;
-  if(filt.q){const s=(i.id+' '+i.py+' '+i.judul+' '+i.daerah+' '+i.section.join(' ')+' '+i.tiang_awal+' '+i.tiang_akhir+' '+i.info).toLowerCase();if(!s.includes(filt.q))return false}
+  if(filt.q){const s=(i.id+' '+i.py+' '+i.judul+' '+i.daerah+' '+i.section.join(' ')+' '+i.tiang_awal+' '+i.tiang_akhir+' '+i.tanya+' '+(i.kode||'')).toLowerCase();if(!s.includes(filt.q))return false}
   return true}
 function urut(a,b){const pr={P1:0,P2:1,P3:2};if(POS)return jarak(POS,a.titik)-jarak(POS,b.titik);return (pr[a.pri]-pr[b.pri])||(b.hemat-a.hemat)}
 function render(){
@@ -120,7 +128,7 @@ function render(){
   daftar.innerHTML=L.slice(0,300).map(i=>{const s=stat(i.id);return `<div class="kartu ${i.jenis}" data-id="${i.id}">
    <div class="atas"><div><span class="lbl ${i.jenis}">${JN[i.jenis]}</span> <span class="lbl ${i.pri}">${i.pri}</span> <b style="font-size:12.5px">${i.id}</b></div>
    <span class="st ${s}">${s==='selesai'?'✔ Selesai':s==='antri'?'⏳ Antri':'Belum'}</span></div>
-   <h3>${esc(i.py)} · ${esc(i.judul)}</h3>
+   <h3>${esc(i.py)} · ${esc(i.tanya)}</h3>
    <div class="meta"><b>${esc(i.ulp)}</b> · ${esc(i.daerah)}${i.section.length?'<br>Section: <b>'+esc(i.section.join(', '))+'</b>':''}
    ${i.tiang_awal?'<br>Tiang: <b>'+esc(i.tiang_awal)+'</b> → <b>'+esc(i.tiang_akhir)+'</b>':''}
    ${POS?'<br>Jarak dari posisi: <b>'+fkm(jarak(POS,i.titik))+'</b>':''}</div></div>`}).join('')||'<p class="ringkas">Tidak ada titik untuk filter ini.</p>';
@@ -137,63 +145,105 @@ let peta=null,lapis=null;
 function dasar(m){const sat=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,maxNativeZoom:18,attribution:'Esri'});
   const osm=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'});sat.addTo(m);L.control.layers({'Satelit':sat,'Jalan (OSM)':osm}).addTo(m)}
 const WARNA={BN:'#D64045',AS:'#E8890C',GD:'#7B5CD6'};
-function initPeta(){if(peta)return;peta=L.map('peta',{zoomControl:true}).setView([2.3,99.9],9);dasar(peta);lapis=L.layerGroup().addTo(peta);gambarPeta(ITEMS.filter(lolos))}
+function initPeta(){if(peta)return;peta=L.map('peta',{zoomControl:true}).setView([2.3,99.9],9);dasar(peta);lapis=L.layerGroup().addTo(peta);gambarPeta(ITEMS.filter(lolos));if(POS)perbaruiSaya()}
 function gambarPeta(Ls){if(!lapis)return;lapis.clearLayers();const b=[];
   Ls.forEach(i=>{const s=stat(i.id),w=s==='selesai'?'#1E9E5A':WARNA[i.jenis];
     if(i.garis.length)L.polyline(i.garis,{color:w,weight:4,opacity:.9}).addTo(lapis);
     const m=L.circleMarker(i.titik,{radius:8,color:'#fff',weight:2,fillColor:w,fillOpacity:1}).addTo(lapis);
-    m.bindPopup(`<b>${i.id}</b> · ${esc(i.py)}<br>${esc(i.judul)}<br><a href="#" onclick="buka('${i.id}');return false">Buka detail</a>`);b.push(i.titik)});
-  if(POS)L.circleMarker(POS,{radius:7,color:'#fff',weight:3,fillColor:'#1C7ED6',fillOpacity:1}).addTo(lapis);
+    m.bindPopup(`<b>${i.id}</b> · ${esc(i.py)}<br>${esc(i.tanya)}<br><a href="#" onclick="buka('${i.id}');return false">Buka detail</a>`);b.push(i.titik)});
   if(b.length)peta.fitBounds(b,{padding:[30,30],maxZoom:15})}
-// GPS
-gpsBtn.onclick=()=>{if(!navigator.geolocation)return toast('GPS tidak tersedia di HP ini');toast('Mencari posisi…');
-  navigator.geolocation.getCurrentPosition(p=>{POS=[p.coords.latitude,p.coords.longitude];toast('Posisi didapat (±'+Math.round(p.coords.accuracy)+' m). Daftar diurutkan dari yang terdekat.');render()},
-  e=>toast('Gagal ambil posisi: '+e.message),{enableHighAccuracy:true,timeout:15000})};
+// GPS live (seperti titik live BARAKUDA)
+let WATCH=null,AKU=null,ARAH=null,DLAMA=[],AKT=null;const ikonSaya=()=>L.divIcon({className:'',html:'<div class="saya"></div>',iconSize:[18,18],iconAnchor:[9,9]});
+let mSayaPeta=null,cSayaPeta=null,mSayaMini=null,cSayaMini=null,gSayaMini=null;
+function mulaiLive(){if(WATCH!==null||!navigator.geolocation)return;
+  WATCH=navigator.geolocation.watchPosition(p=>{POS=[p.coords.latitude,p.coords.longitude];AKU=Math.round(p.coords.accuracy);
+    ARAH=(p.coords.heading!=null&&!isNaN(p.coords.heading)&&p.coords.speed>0.7)?p.coords.heading:ARAH;
+    gpsBtn.textContent='📍 Live ±'+AKU+' m';perbaruiSaya()},
+  e=>{if(e.code===1){gpsBtn.textContent='📍 GPS ditolak';toast('Izin lokasi ditolak. Nyalakan lokasi HP lalu izinkan browser untuk situs ini.',5000);navigator.geolocation.clearWatch(WATCH);WATCH=null}else if(!POS)gpsBtn.textContent='📍 Mencari GPS…'},{enableHighAccuracy:true,maximumAge:3000,timeout:20000})}
+function taruh(map,m,c,acc){if(!map)return[m,c];if(!m){m=L.marker(POS,{icon:ikonSaya(),zIndexOffset:1000,interactive:false}).addTo(map);c=L.circle(POS,{radius:acc,weight:1,color:'#1C7ED6',fillOpacity:.12,interactive:false}).addTo(map)}else{m.setLatLng(POS);c.setLatLng(POS).setRadius(acc)}return[m,c]}
+let tRender=0;
+function perbaruiSaya(){[mSayaPeta,cSayaPeta]=taruh(peta,mSayaPeta,cSayaPeta,AKU);
+  if(AKT&&mini){[mSayaMini,cSayaMini]=taruh(mini,mSayaMini,cSayaMini,AKU);statusLive(AKT)}
+  if(Date.now()-tRender>15000&&detail.style.display!=='block'){tRender=Date.now();render()}}
+gpsBtn.onclick=()=>{if(!navigator.geolocation)return toast('GPS tidak tersedia di HP ini');mulaiLive();
+  if(POS){if(peta&&document.getElementById('peta').style.display==='block')peta.setView(POS,16);render();toast('Daftar diurutkan dari yang terdekat')}else toast('Mencari posisi…')};
+// ---- hitung posisi terhadap target ----
+const KX=a=>111320*Math.cos(a*Math.PI/180),KY=110540;
+function xy(p,o){return[(p[1]-o[1])*KX(o[0]),(p[0]-o[0])*KY]}
+function arahMata(deg){return['Utara','Timur Laut','Timur','Tenggara','Selatan','Barat Daya','Barat','Barat Laut'][Math.round(((deg%360)+360)%360/45)%8]}
+function bearing(a,b){const[x,y]=xy(b,a);return(Math.atan2(x,y)*180/Math.PI+360)%360}
+function dekatGaris(i){let best=1e12;for(const[a,b]of i.garis){const A=xy(a,POS),B=xy(b,POS),dx=B[0]-A[0],dy=B[1]-A[1],LL=dx*dx+dy*dy||1e-9;
+  const t=Math.max(0,Math.min(1,-(A[0]*dx+A[1]*dy)/LL));best=Math.min(best,Math.hypot(A[0]+t*dx,A[1]+t*dy))}return best}
+function tetangga(i){const k=x=>x[0].toFixed(5)+','+x[1].toFixed(5),T=k(i.titik);for(const[a,b]of i.garis){if(k(a)===T)return b;if(k(b)===T)return a}return null}
+function hitungPosisi(i){if(!POS)return null;const d=jarak(POS,i.titik)*1000,acc=AKU||30,r=Math.max(25,Math.min(acc,60));
+  const br=bearing(POS,i.titik);let kat,teks,sub='';
+  DLAMA.push(d);if(DLAMA.length>6)DLAMA.shift();
+  const naik=DLAMA.length>=4&&DLAMA[DLAMA.length-1]-DLAMA[0]>25;
+  if(d<=r){kat='pas';teks='Sudah di titik';sub='±'+Math.round(d)+' m dari titik · akurasi GPS ±'+acc+' m'}
+  else{let lewat=false;const nb=i.jenis!=='GD'?tetangga(i):null;
+    if(nb){const U=xy(i.titik,nb),V=xy(POS,i.titik);const Lu=Math.hypot(U[0],U[1])||1;const proj=(U[0]*V[0]+U[1]*V[1])/Lu;const tegak=Math.abs(U[0]*V[1]-U[1]*V[0])/Lu;
+      lewat=proj>r&&tegak<Math.max(80,acc*2)}
+    else lewat=naik&&d<2000;
+    if(lewat){kat='lebih';teks='Kelebihan '+fm(d)+' — putar balik';sub='Titik ada di arah '+arahMata(br)}
+    else if(d<3000){kat='kurang';teks='Kurang '+fm(d)+' lagi';sub='Arah '+arahMata(br)+(i.garis.length&&i.jenis!=='GD'?' · '+(dekatGaris(i)<=Math.max(40,acc)?'kamu sudah di jalur ruas ini':'jalur ruas '+fm(dekatGaris(i))+' dari kamu'):'')}
+    else{kat='jauh';teks=fm(d)+' lagi';sub='Arah '+arahMata(br)+' · pakai tombol Navigasi'}}
+  return{kat,teks,sub,d:Math.round(d),br}}
+function fm(m){return m<1000?Math.round(m)+' m':(m/1000).toFixed(1).replace('.',',')+' km'}
+function statusLive(i){const e=document.getElementById('live');if(!e)return;const h=hitungPosisi(i);
+  if(!h){e.className='';e.innerHTML='<span class="panah">📍</span><div>Mencari posisi GPS…<div class="sub2">Nyalakan lokasi HP dan izinkan browser</div></div>';return}
+  const rot=ARAH!=null?h.br-ARAH:h.br;e.className=h.kat;
+  e.innerHTML=`<span class="panah" style="transform:rotate(${h.kat==='pas'?0:rot}deg)">${h.kat==='pas'?'✅':'⬆'}</span><div>${h.teks}<div class="sub2">${h.sub}${ARAH==null&&h.kat!=='pas'?' · panah: atas = utara':''}</div></div>`;
+  if(mini){if(!gSayaMini)gSayaMini=L.polyline([POS,i.titik],{color:'#1C7ED6',weight:2,dashArray:'6 6',interactive:false}).addTo(mini);else gSayaMini.setLatLngs([POS,i.titik])}}
 // detail
 let mini=null,FOTO=[];
-function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];
+const JK=['AAAC (A3C)','AAACS','MVTIC (kabel pilin)','SKTM (kabel tanah)','Lainnya'],PN=['35','50','70','95','120','150','240','300','Lainnya'];
+const NMK={AAAC:'AAAC (A3C)',SKTM:'SKTM (kabel tanah)'};
+function opsi(L,v){return '<option value="">— pilih —</option>'+L.map(x=>`<option${String(x)===String(v)?' selected':''}>${x}</option>`).join('')}
+function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];AKT=i;DLAMA=[];mSayaMini=cSayaMini=gSayaMini=null;
   const nav=`https://www.google.com/maps/dir/?api=1&destination=${i.titik[0]},${i.titik[1]}`;
-  const nama=ambil('cl_nama','');const lap=STATUS[id];
-  const pen=['35','50','70','95','120','150','240','SKTM 150','SKTM 240','MVTIC','Lainnya'];
-  detail.innerHTML=`<div class="bar"><button onclick="tutup()">←</button><div><b>${i.id}</b> · ${esc(i.py)}<div style="font-size:12px;opacity:.85">${esc(i.ulp)}</div></div></div>
-  <div id="mini"></div><div class="isi">
-  <div class="kotak"><span class="lbl ${i.jenis}">${JN[i.jenis]}</span> <span class="lbl ${i.pri}">${i.pri}</span><h3 style="margin:8px 0 4px;font-size:16px">${esc(i.judul)}</h3><div class="kecil">${esc(i.info)}</div></div>
+  const nama=ambil('cl_nama','');const lap=STATUS[id];const gd=i.jenis==='GD';
+  const hasilOps=gd?['Ada','Tidak ada','Tidak bisa dicek']:['Ya, sesuai','Tidak sesuai','Tidak bisa dicek'];
+  detail.innerHTML=`<div class="bar"><button onclick="tutup()">←</button><div><b>${esc(i.py)}</b> · ${i.id}<div style="font-size:12px;opacity:.85">${esc(i.ulp)}</div></div></div>
+  <div id="live"></div><div id="mini"></div><div class="isi">
+  <div class="kotak"><span class="lbl ${i.jenis}">${JN[i.jenis]}</span> <span class="lbl ${i.pri}">${i.pri}</span>
+   <div class="tanya">${esc(i.tanya)}</div>${i.ket?`<div class="kecil">${esc(i.ket)}</div>`:''}</div>
   <div class="kotak"><h4>Lokasi</h4>
    <div class="baris"><span>ULP</span><span>${esc(i.ulp)}</span></div>
    <div class="baris"><span>Penyulang</span><span>${esc(i.py)}</span></div>
    ${i.section.length?`<div class="baris"><span>Section</span><span>${esc(i.section.join(', '))}</span></div>`:''}
    <div class="baris"><span>Daerah</span><span>${esc(i.daerah)}</span></div>
    ${i.tiang_awal?`<div class="baris"><span>Tiang awal</span><span>${esc(i.tiang_awal)}</span></div><div class="baris"><span>Tiang akhir / titik ganti</span><span>${esc(i.tiang_akhir)}</span></div>`:''}
-   <div class="baris"><span>Titik utama</span><span>${i.titik[0]}, ${i.titik[1]}</span></div>
+   <div class="baris"><span>Titik</span><span>${i.titik[0]}, ${i.titik[1]}</span></div>
    ${i.gis?`<div class="baris"><span>Titik GIS (abu-abu)</span><span>${i.gis[0]}, ${i.gis[1]}</span></div>`:''}
-   ${POS?`<div class="baris"><span>Jarak dari posisi</span><span>${fkm(jarak(POS,i.titik))}</span></div>`:''}
    <div class="dua"><a class="tombol utama" href="${nav}" target="_blank">🧭 Navigasi</a><button class="tombol kedua" onclick="salin('${i.titik[0]}, ${i.titik[1]}')">Salin koordinat</button></div></div>
-  <div class="kotak"><h4>Yang dicek</h4><div style="font-size:14px;line-height:1.5">${esc(i.cek)}</div></div>
   <div class="kotak"><h4>Lapor hasil ${lap?'<span class="st selesai">sudah dilapor '+esc(lap.waktu||'')+'</span>':''}</h4>
-   <label class="f">Nama petugas</label><input type="text" id="iNama" value="${esc(nama)}" placeholder="Nama & ULP">
-   <label class="f">Hasil</label><div class="opsi" id="iHasil">${['Sesuai data','Tidak sesuai','Tidak ditemukan','Tidak bisa diakses'].map(h=>`<label><input type="radio" name="hasil" value="${h}">${h}</label>`).join('')}</div>
-   ${i.jenis!=='GD'?`<label class="f">Penampang di lapangan (mm²)</label><select id="iPen"><option value="">— pilih —</option>${pen.map(p=>`<option>${p}</option>`).join('')}</select>
-   <label class="f">Penampang ruas sesudahnya (hilir)</label><select id="iPen2"><option value="">— pilih —</option>${pen.map(p=>`<option>${p}</option>`).join('')}</select>
-   <label class="f">Jumlah sirkit di tiang</label><div class="opsi">${['1','2','3+'].map(h=>`<label><input type="radio" name="sirkit" value="${h}">${h}</label>`).join('')}</div>`:
-   `<label class="f">Kode gardu di papan nama</label><input type="text" id="iKode" placeholder="contoh: TB192"><label class="f">kVA di lapangan</label><input type="text" id="iKva" placeholder="contoh: 100">`}
-   <label class="f">Tiang / lokasi yang dicek</label><input type="text" id="iTiang" placeholder="nomor tiang atau patokan">
-   <label class="f">Catatan</label><textarea id="iCat" rows="3" placeholder="kondisi, sambungan, temuan lain"></textarea>
+   <label class="f">Nama petugas</label><input type="text" id="iNama" value="${esc(nama)}" placeholder="Nama">
+   <label class="f">${gd?'Gardunya ada di titik ini?':'Sesuai?'}</label><div class="opsi">${hasilOps.map(h=>`<label><input type="radio" name="hasil" value="${h}">${h}</label>`).join('')}</div>
+   ${gd?`<label class="f">Kode gardu (papan nama)</label><input type="text" id="iKode" placeholder="${esc(i.kode||'')}">
+   <label class="f">kVA trafo</label><input type="number" inputmode="numeric" id="iKva" placeholder="${esc(i.kva||'')}">`:
+   `<label class="f">Jenis kabel</label><select id="iJk">${opsi(JK,NMK[i.kab]||'')}</select>
+   <label class="f">Penampang (mm²)</label><select id="iPen">${opsi(PN,i.mm||'')}</select>
+   <label class="f">Jumlah tiang</label><input type="number" inputmode="numeric" id="iNt" placeholder="${i.ntiang?'data: '+i.ntiang+' tiang (boleh dikosongkan)':'boleh dikosongkan'}">
+   ${i.ganda?`<label class="f">Sirkit di tiang</label><div class="opsi">${['Single','Double'].map(h=>`<label><input type="radio" name="sirkit" value="${h}">${h}</label>`).join('')}</div>`:''}`}
+   <label class="f">Catatan (kalau perlu)</label><textarea id="iCat" rows="2"></textarea>
    <label class="f">Foto (maks 3)</label><input type="file" id="iFoto" accept="image/*" capture="environment" multiple><div class="foto" id="pratinjau"></div>
-   <div class="kecil" id="iGps">Posisi saat lapor akan direkam otomatis.</div>
    <button class="tombol hijau" onclick="kirim('${i.id}')">Kirim laporan</button>
    ${CFG.WA?`<button class="tombol kedua" onclick="kirimWA('${i.id}')">Kirim lewat WhatsApp</button>`:''}
   </div></div>`;
-  detail.style.display='block';document.body.style.overflow='hidden';
+  detail.style.display='block';document.body.style.overflow='hidden';detail.scrollTop=0;mulaiLive();statusLive(i);
   setTimeout(()=>{if(mini){mini.remove();mini=null}mini=L.map('mini');dasar(mini);
-    if(i.garis.length)L.polyline(i.garis,{color:'#FFD400',weight:6}).addTo(mini);
-    L.circleMarker(i.titik,{radius:10,color:'#fff',weight:3,fillColor:'#D64045',fillOpacity:1}).addTo(mini).bindTooltip(i.jenis==='GD'?'Titik ukur':'Titik ganti',{permanent:true,direction:'top'});
-    if(i.jenis!=='GD'&&i.awal)L.circleMarker(i.awal,{radius:8,color:'#fff',weight:3,fillColor:'#1C7ED6',fillOpacity:1}).addTo(mini).bindTooltip('Awal',{direction:'top'});
+    if(i.garis.length&&!gd)L.polyline(i.garis,{color:'#FFD400',weight:6}).addTo(mini);
+    if(gd)L.polyline(i.garis,{color:'#fff',weight:2,dashArray:'4 6',opacity:.8}).addTo(mini);
+    L.circleMarker(i.titik,{radius:10,color:'#fff',weight:3,fillColor:'#D64045',fillOpacity:1}).addTo(mini).bindTooltip(gd?'Titik gardu':'Titik ganti',{permanent:true,direction:'top'});
+    if(!gd&&i.awal)L.circleMarker(i.awal,{radius:8,color:'#fff',weight:3,fillColor:'#1C7ED6',fillOpacity:1}).addTo(mini).bindTooltip('Awal',{direction:'top'});
     if(i.gis)L.circleMarker(i.gis,{radius:8,color:'#fff',weight:3,fillColor:'#8A94A3',fillOpacity:1}).addTo(mini).bindTooltip('Titik GIS',{direction:'top'});
-    if(POS)L.circleMarker(POS,{radius:7,color:'#fff',weight:3,fillColor:'#1C7ED6',fillOpacity:1}).addTo(mini).bindTooltip('Saya');
-    const pts=[i.titik].concat(i.garis.flat());if(i.gis)pts.push(i.gis);mini.fitBounds(pts,{padding:[30,30],maxZoom:17})},60);
+    const pts=[i.titik].concat(i.garis.flat());if(i.gis)pts.push(i.gis);mini.fitBounds(pts,{padding:[30,30],maxZoom:17});
+    const B=L.control({position:'topright'});B.onAdd=()=>{const d=L.DomUtil.create('div');d.innerHTML='<button style="background:#fff;border:0;border-radius:8px;padding:8px 10px;font-weight:700;box-shadow:0 1px 4px rgba(0,0,0,.3)">📍 Saya</button>';
+      d.onclick=e=>{L.DomEvent.stop(e);if(POS)mini.fitBounds([POS,i.titik],{padding:[40,40],maxZoom:18});else toast('Posisi belum didapat')};return d};B.addTo(mini);
+    if(POS)perbaruiSaya()},60);
   document.getElementById('iFoto').onchange=async e=>{for(const f of [...e.target.files].slice(0,3-FOTO.length))FOTO.push(await kecilkan(f));
     pratinjau.innerHTML=FOTO.map(f=>`<img src="${f}">`).join('')}}
-function tutup(){detail.style.display='none';document.body.style.overflow='';render()}
+function tutup(){AKT=null;detail.style.display='none';document.body.style.overflow='';render()}
 function salin(t){navigator.clipboard&&navigator.clipboard.writeText(t).then(()=>toast('Koordinat disalin'),()=>toast(t))}
 function kecilkan(f){return new Promise(res=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,1280/Math.max(im.width,im.height));
   const c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',0.7))};im.src=r.result};r.readAsDataURL(f)})}
@@ -202,11 +252,13 @@ function posisiSekarang(){return new Promise(res=>{if(!navigator.geolocation)ret
 function nilai(id){const e=document.getElementById(id);return e?e.value.trim():''}
 function radio(n){const e=document.querySelector(`input[name="${n}"]:checked`);return e?e.value:''}
 async function kumpul(id){const i=ITEMS.find(x=>x.id===id);const nama=nilai('iNama');const hasil=radio('hasil');
-  if(!nama){toast('Isi nama petugas dulu');return null}if(!hasil){toast('Pilih hasil pengecekan');return null}
-  simpan('cl_nama',nama);toast('Merekam posisi GPS…');const g=await posisiSekarang();if(g)POS=[g.lat,g.lon];
-  return {id,jenis:i.jenis,ulp:i.ulp,penyulang:i.py,judul:i.judul,section:i.section.join(', '),tiang_data:(i.tiang_awal?i.tiang_awal+' → '+i.tiang_akhir:''),
-    titik:i.titik.join(','),petugas:nama,hasil,penampang:nilai('iPen'),penampang_hilir:nilai('iPen2'),sirkit:radio('sirkit'),kode_gardu:nilai('iKode'),kva:nilai('iKva'),
-    tiang_dicek:nilai('iTiang'),catatan:nilai('iCat'),gps:g?g.lat.toFixed(6)+','+g.lon.toFixed(6):'',akurasi:g?g.akurasi:'',jarak_m:g?Math.round(jarak([g.lat,g.lon],i.titik)*1000):'',
+  if(!nama){toast('Isi nama petugas dulu');return null}if(!hasil){toast(i.jenis==='GD'?'Pilih: gardunya ada atau tidak':'Pilih: sesuai atau tidak');return null}
+  simpan('cl_nama',nama);toast('Merekam posisi GPS…');const g=(await posisiSekarang())||(POS?{lat:POS[0],lon:POS[1],akurasi:AKU||''}:null);if(g){POS=[g.lat,g.lon];AKU=g.akurasi||AKU}
+  const h=g?hitungPosisi(i):null;
+  return {id,jenis:i.jenis,ulp:i.ulp,penyulang:i.py,section:i.section.join(', '),
+    data:i.jenis==='GD'?(i.kode+' '+(i.kva||'?')+' kVA'):((NMK[i.kab]||'')+' '+(i.mm||'')+(i.mm?' mm²':'')),tiang_data:(i.tiang_awal?i.tiang_awal+' → '+i.tiang_akhir:''),
+    titik:i.titik.join(','),petugas:nama,hasil,jenis_kabel:nilai('iJk'),penampang:nilai('iPen'),jumlah_tiang:nilai('iNt'),sirkit:radio('sirkit'),kode_gardu:nilai('iKode'),kva:nilai('iKva'),
+    catatan:nilai('iCat'),gps:g?g.lat.toFixed(6)+','+g.lon.toFixed(6):'',akurasi:g?g.akurasi:'',jarak_m:g?Math.round(jarak([g.lat,g.lon],i.titik)*1000):'',posisi:h?h.teks:'',
     waktu:new Date().toLocaleString('id-ID'),foto:FOTO.slice(0,3)}}
 async function kirim(id){const r=await kumpul(id);if(!r)return;ANTRI=ANTRI.filter(a=>a.id!==id);ANTRI.push(r);simpan('cl_antri',ANTRI);await kirimAntri(true);tutup()}
 async function kirimAntri(tampil){if(!ANTRI.length)return;
@@ -215,7 +267,7 @@ async function kirimAntri(tampil){if(!ANTRI.length)return;
       const t=await res.text();if(!/"ok"\s*:\s*true/.test(t))throw new Error(t.slice(0,80));STATUS[r.id]={waktu:r.waktu,petugas:r.petugas,hasil:r.hasil}}catch(e){sisa.push(r)}}
   const n=ANTRI.length-sisa.length;ANTRI=sisa;simpan('cl_antri',ANTRI);simpan('cl_status',STATUS);
   if(tampil)toast(n?n+' laporan terkirim'+(sisa.length?', '+sisa.length+' menunggu sinyal':''):'Belum terkirim (sinyal?). Disimpan di HP, akan dikirim ulang otomatis.',4000);render()}
-function kirimWA(id){kumpul(id).then(r=>{if(!r)return;const t=`*CEK LAPANGAN ${r.id}*\nULP: ${r.ulp}\nPenyulang: ${r.penyulang}\n${r.judul}\nSection: ${r.section}\nTiang data: ${r.tiang_data}\nHasil: ${r.hasil}\nPenampang: ${r.penampang} / hilir ${r.penampang_hilir} · sirkit ${r.sirkit}\nGardu: ${r.kode_gardu} ${r.kva}\nTiang dicek: ${r.tiang_dicek}\nCatatan: ${r.catatan}\nGPS: ${r.gps} (±${r.akurasi} m, ${r.jarak_m} m dari titik)\nPetugas: ${r.petugas} · ${r.waktu}`;
+function kirimWA(id){kumpul(id).then(r=>{if(!r)return;const t=`*CEK LAPANGAN ${r.id}*\nULP: ${r.ulp}\nPenyulang: ${r.penyulang}\nSection: ${r.section}\nData: ${r.data}\nHasil: ${r.hasil}\n`+(r.jenis==='GD'?`Gardu: ${r.kode_gardu} ${r.kva} kVA\n`:`Lapangan: ${r.jenis_kabel} ${r.penampang} mm² · ${r.jumlah_tiang||'-'} tiang${r.sirkit?' · '+r.sirkit:''}\n`)+`Catatan: ${r.catatan}\nGPS: ${r.gps} (±${r.akurasi} m, ${r.posisi})\nPetugas: ${r.petugas} · ${r.waktu}`;
   STATUS[id]={waktu:r.waktu,petugas:r.petugas,hasil:r.hasil};simpan('cl_status',STATUS);window.open('https://wa.me/'+(CFG.WA||'')+'?text='+encodeURIComponent(t),'_blank')})}
 async function tampilRekap(){let rows=[];
   if(CFG.ENDPOINT){rekap.innerHTML='<p class="ringkas">Memuat rekap dari server…</p>';try{const r=await fetch(CFG.ENDPOINT+'?aksi=rekap&kunci='+encodeURIComponent(CFG.KUNCI||''));const j=await r.json();rows=j.data||[];

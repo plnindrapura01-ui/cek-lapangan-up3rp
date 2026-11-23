@@ -2,8 +2,8 @@
 // Pasang di Google Sheet baru: Extensions > Apps Script, tempel kode ini, lalu Deploy > New deployment > Web app.
 const KUNCI = "";                 // samakan dengan KUNCI di config.js (boleh kosong)
 const NAMA_FOLDER = "FOTO_CEK_LAPANGAN_UP3RP";
-const KOLOM = ["diterima","id","jenis","ulp","penyulang","judul","section","tiang_data","titik","petugas","hasil",
-  "penampang","penampang_hilir","sirkit","kode_gardu","kva","tiang_dicek","catatan","gps","akurasi","jarak_m","waktu","foto"];
+const KOLOM = ["diterima","id","jenis","ulp","penyulang","section","data","tiang_data","titik","petugas","hasil",
+  "jenis_kabel","penampang","jumlah_tiang","sirkit","kode_gardu","kva","catatan","gps","akurasi","jarak_m","posisi","waktu","foto"];
 
 function lembar_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
