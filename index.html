@@ -158,12 +158,13 @@ let mSayaPeta=null,cSayaPeta=null,mSayaMini=null,cSayaMini=null,gSayaMini=null;
 function mulaiLive(){if(WATCH!==null||!navigator.geolocation)return;
   WATCH=navigator.geolocation.watchPosition(p=>{POS=[p.coords.latitude,p.coords.longitude];AKU=Math.round(p.coords.accuracy);
     ARAH=(p.coords.heading!=null&&!isNaN(p.coords.heading)&&p.coords.speed>0.7)?p.coords.heading:ARAH;
-    gpsBtn.textContent='📍 Live ±'+AKU+' m';perbaruiSaya()},
-  e=>{if(e.code===1){gpsBtn.textContent='📍 GPS ditolak';toast('Izin lokasi ditolak. Nyalakan lokasi HP lalu izinkan browser untuk situs ini.',5000);navigator.geolocation.clearWatch(WATCH);WATCH=null}else if(!POS)gpsBtn.textContent='📍 Mencari GPS…'},{enableHighAccuracy:true,maximumAge:3000,timeout:20000})}
+    gpsBtn.textContent='📍 Live ±'+AKU+' m';perbaruiSaya();terimaTag(p)},
+  e=>{if(e.code===1){gpsBtn.textContent='📍 GPS ditolak';toast('Izin lokasi ditolak. Nyalakan lokasi HP lalu izinkan browser untuk situs ini.',5000);navigator.geolocation.clearWatch(WATCH);WATCH=null}else if(!POS)gpsBtn.textContent='📍 Mencari GPS…'},{enableHighAccuracy:true,maximumAge:0,timeout:20000})}
 function taruh(map,m,c,acc){if(!map)return[m,c];if(!m){m=L.marker(POS,{icon:ikonSaya(),zIndexOffset:1000,interactive:false}).addTo(map);c=L.circle(POS,{radius:acc,weight:1,color:'#1C7ED6',fillOpacity:.12,interactive:false}).addTo(map)}else{m.setLatLng(POS);c.setLatLng(POS).setRadius(acc)}return[m,c]}
 let tRender=0;
 function perbaruiSaya(){[mSayaPeta,cSayaPeta]=taruh(peta,mSayaPeta,cSayaPeta,AKU);
   if(AKT&&mini){[mSayaMini,cSayaMini]=taruh(mini,mSayaMini,cSayaMini,AKU);statusLive(AKT)}
+  infoAkurasi();
   if(Date.now()-tRender>15000&&detail.style.display!=='block'){tRender=Date.now();render()}}
 gpsBtn.onclick=()=>{if(!navigator.geolocation)return toast('GPS tidak tersedia di HP ini');mulaiLive();
   if(POS){if(peta&&document.getElementById('peta').style.display==='block')peta.setView(POS,16);render();toast('Daftar diurutkan dari yang terdekat')}else toast('Mencari posisi…')};
@@ -196,10 +197,36 @@ function statusLive(i){const e=document.getElementById('live');if(!e)return;cons
   if(mini){if(!gSayaMini)gSayaMini=L.polyline([POS,i.titik],{color:'#1C7ED6',weight:2,dashArray:'6 6',interactive:false}).addTo(mini);else gSayaMini.setLatLngs([POS,i.titik])}}
 // detail
 let mini=null,FOTO=[];
-const JK=['AAAC (A3C)','AAACS','MVTIC (kabel pilin)','SKTM (kabel tanah)','Lainnya'],PN=['35','50','70','95','120','150','240','300','Lainnya'];
-const NMK={AAAC:'AAAC (A3C)',SKTM:'SKTM (kabel tanah)'};
-function opsi(L,v){return '<option value="">— pilih —</option>'+L.map(x=>`<option${String(x)===String(v)?' selected':''}>${x}</option>`).join('')}
-function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];AKT=i;DLAMA=[];mSayaMini=cSayaMini=gSayaMini=null;
+// daftar jenis penghantar TM = domain MAS8 (jenis_jtm) + Lainnya
+const JKG=[['Saluran udara',['AAAC (A3C)','AAACS (A3CS)','MVTIC','CCSXT','ACSR','BCC']],['Kabel tanah (SKTM)',['N2XSY 1C','N2XSEBY 1C','N2XSEFGBY 3C','NA2XSY 3C','NA2XFGBY 3C','NAYRY 1C']]];
+const PN=['35','50','70','95','120','150','240','300','400','630','800','1000'];
+const NMK={AAAC:'AAAC (A3C)',SKTM:''};
+function opsi(L,v){return '<option value="">— pilih —</option>'+L.map(x=>`<option${String(x)===String(v)?' selected':''}>${x}</option>`).join('')+`<option value="Lainnya">Lainnya (tulis)</option>`}
+function opsiG(G,v){return '<option value="">— pilih —</option>'+G.map(([g,L])=>`<optgroup label="${g}">`+L.map(x=>`<option${x===v?' selected':''}>${x}</option>`).join('')+'</optgroup>').join('')+`<option value="Lainnya">Lainnya (tulis)</option>`}
+function lain(sel,inp){const s=document.getElementById(sel),i=document.getElementById(inp);if(!s||!i)return;i.style.display=s.value==='Lainnya'?'block':'none';if(s.value==='Lainnya')i.focus()}
+// ---- tag lokasi gardu sebenarnya (wajib akurasi tinggi) ----
+const AKU_TAG=10,N_TAG=3;let TAG=null,tagWatch=null,tagSampel=[];
+function aturHasil(){const v=radio('hasil'),b=document.getElementById('tagBox');if(!b)return;b.style.display=v==='Tidak ada'?'block':'none';infoAkurasi();cekKirim()}
+function cekKirim(){const btn=document.getElementById('btnKirim');if(!btn)return;const perlu=radio('hasil')==='Tidak ada'&&!TAG;btn.style.opacity=perlu?.45:1;
+  const m=document.getElementById('tagWajib');if(m)m.style.display=perlu?'block':'none'}
+function infoAkurasi(){const e=document.getElementById('tagAku');if(!e||TAG||tagWatch!==null)return;if(AKU==null){e.innerHTML='Menunggu GPS…';return}
+  const ok=AKU<=AKU_TAG;e.innerHTML=`Akurasi GPS sekarang: <b style="color:${ok?'#1E9E5A':'#D64045'}">±${AKU} m</b> ${ok?'— siap di-tag':'— belum cukup (harus ≤'+AKU_TAG+' m). Berdiri di tempat terbuka dekat gardu, tunggu sebentar.'}`;
+  const b=document.getElementById('btnTag');if(b){b.disabled=!ok;b.style.opacity=ok?1:.45}}
+function mulaiTag(){if(!navigator.geolocation)return toast('GPS tidak tersedia');mulaiLive();TAG=null;cekKirim();tagSampel=[];tagWatch={t0:Date.now()};
+  document.getElementById('tagAku').innerHTML='Mengambil titik… jangan bergerak (0/'+N_TAG+')'}
+function terimaTag(p){if(tagWatch===null)return;const e=document.getElementById('tagAku');if(!e){tagWatch=null;return}const a=p.coords.accuracy;
+  if(a<=AKU_TAG){tagSampel.push([p.coords.latitude,p.coords.longitude,a]);e.innerHTML='Mengambil titik… jangan bergerak ('+tagSampel.length+'/'+N_TAG+', ±'+Math.round(a)+' m)'}
+  else e.innerHTML='Akurasi turun ke ±'+Math.round(a)+' m, tunggu…';
+  if(tagSampel.length>=N_TAG){tagWatch=null;
+    const n=tagSampel.length,la=tagSampel.reduce((s,x)=>s+x[0],0)/n,lo=tagSampel.reduce((s,x)=>s+x[1],0)/n,ak=Math.max(...tagSampel.map(x=>x[2]));
+    const sebar=Math.max(...tagSampel.map(x=>jarak([la,lo],[x[0],x[1]])*1000));
+    if(sebar>AKU_TAG){tagSampel=[];e.innerHTML='Titik belum stabil (bergeser '+Math.round(sebar)+' m). Tekan Tag lagi tanpa bergerak.';return}
+    TAG={lat:+la.toFixed(7),lon:+lo.toFixed(7),akurasi:Math.round(ak),n,geser:AKT?Math.round(jarak([la,lo],AKT.titik)*1000):''};
+    e.innerHTML=`✅ Titik gardu sebenarnya tersimpan: <b>${TAG.lat}, ${TAG.lon}</b> (±${TAG.akurasi} m, ${n} kali baca) · ${fm(TAG.geser)} dari titik data`;
+    document.getElementById('btnTag').textContent='Tag ulang';if(mini){if(mini._tag)mini.removeLayer(mini._tag);mini._tag=L.circleMarker([la,lo],{radius:10,color:'#fff',weight:3,fillColor:'#1E9E5A',fillOpacity:1}).addTo(mini).bindTooltip('Gardu sebenarnya',{permanent:true,direction:'top'})}
+    cekKirim()}
+  else if(Date.now()-tagWatch.t0>45000){tagWatch=null;e.innerHTML='Belum dapat '+N_TAG+' bacaan ≤'+AKU_TAG+' m dalam 45 detik. Pindah ke tempat lebih terbuka lalu tekan Tag lagi.'}}
+function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];AKT=i;TAG=null;tagWatch=null;DLAMA=[];mSayaMini=cSayaMini=gSayaMini=null;
   const nav=`https://www.google.com/maps/dir/?api=1&destination=${i.titik[0]},${i.titik[1]}`;
   const nama=ambil('cl_nama','');const lap=STATUS[id];const gd=i.jenis==='GD';
   const gb=i.jenis==='GB';
@@ -223,16 +250,23 @@ function buka(id){const i=ITEMS.find(x=>x.id===id);if(!i)return;FOTO=[];AKT=i;DL
    <label class="f">kVA trafo (papan nama)</label><input type="number" inputmode="numeric" id="iKva" value="${esc(i.kva||'')}">
    <label class="f">Arus jam 19 (A)</label><div class="dua">${['R','S','T','N'].map(f=>`<div><div class="kecil">${f}</div><input type="number" inputmode="decimal" id="i${f}" oninput="hitungGB()"></div>`).join('')}</div>
    <div id="gbHasil" class="kecil" style="font-size:14px;font-weight:700;margin-top:6px"></div>`:''}
-   <label class="f">${gb?'Hasil':gd?'Gardunya ada di titik ini?':'Sesuai?'}</label><div class="opsi">${hasilOps.map(h=>`<label><input type="radio" name="hasil" value="${h}">${h}</label>`).join('')}</div>
+   <label class="f">${gb?'Hasil':gd?'Gardunya ada di titik ini?':'Sesuai?'}</label><div class="opsi">${hasilOps.map(h=>`<label><input type="radio" name="hasil" value="${h}" onchange="aturHasil()">${h}</label>`).join('')}</div>
+   ${gd?`<div id="tagBox" class="kotak" style="display:none;background:#FFF6E5;border:1.5px solid #E8890C;margin-top:10px">
+     <b>Di mana gardu yang sebenarnya?</b><div class="kecil" style="margin:4px 0 8px">Pergi ke gardu ${esc(i.kode||'')} yang asli, berdiri di samping tiang/gardunya, lalu tekan Tag. Titik baru tersimpan kalau akurasi GPS ≤${AKU_TAG} m dan ${N_TAG} kali baca stabil.</div>
+     <div id="tagAku" class="kecil" style="font-size:13.5px">Menunggu GPS…</div>
+     <button class="tombol utama" id="btnTag" onclick="mulaiTag()" disabled style="opacity:.45">📍 Tag lokasi gardu</button></div>`:''}
    ${gb?'':gd?`<label class="f">Kode gardu (papan nama)</label><input type="text" id="iKode" placeholder="${esc(i.kode||'')}">
    <label class="f">kVA trafo</label><input type="number" inputmode="numeric" id="iKva" placeholder="${esc(i.kva||'')}">`:
-   `<label class="f">Jenis kabel</label><select id="iJk">${opsi(JK,NMK[i.kab]||'')}</select>
-   <label class="f">Penampang (mm²)</label><select id="iPen">${opsi(PN,i.mm||'')}</select>
+   `<label class="f">Jenis kabel</label><select id="iJk" onchange="lain('iJk','iJkL')">${opsiG(JKG,NMK[i.kab]||'')}</select>
+   <input type="text" id="iJkL" placeholder="tulis jenis kabel" style="display:none;margin-top:6px">
+   <label class="f">Penampang (mm²)</label><select id="iPen" onchange="lain('iPen','iPenL')">${opsi(PN,i.mm||'')}</select>
+   <input type="number" inputmode="numeric" id="iPenL" placeholder="tulis penampang (mm²)" style="display:none;margin-top:6px">
    <label class="f">Jumlah tiang</label><input type="number" inputmode="numeric" id="iNt" placeholder="${i.ntiang?'data: '+i.ntiang+' tiang (boleh dikosongkan)':'boleh dikosongkan'}">
    ${i.ganda?`<label class="f">Sirkit di tiang</label><div class="opsi">${['Single','Double'].map(h=>`<label><input type="radio" name="sirkit" value="${h}">${h}</label>`).join('')}</div>`:''}`}
    <label class="f">Catatan (kalau perlu)</label><textarea id="iCat" rows="2"></textarea>
    <label class="f">Foto (maks 3)</label><input type="file" id="iFoto" accept="image/*" capture="environment" multiple><div class="foto" id="pratinjau"></div>
-   <button class="tombol hijau" onclick="kirim('${i.id}')">Kirim laporan</button>
+   <div id="tagWajib" class="kecil" style="display:none;color:#D64045;font-weight:700;margin-top:8px">Tag dulu lokasi gardu yang sebenarnya, baru laporan bisa dikirim.</div>
+   <button class="tombol hijau" id="btnKirim" onclick="kirim('${i.id}')">Kirim laporan</button>
    ${CFG.WA?`<button class="tombol kedua" onclick="kirimWA('${i.id}')">Kirim lewat WhatsApp</button>`:''}
   </div></div>`;
   detail.style.display='block';document.body.style.overflow='hidden';detail.scrollTop=0;mulaiLive();statusLive(i);
@@ -265,11 +299,14 @@ function nilai(id){const e=document.getElementById(id);return e?e.value.trim():'
 function radio(n){const e=document.querySelector(`input[name="${n}"]:checked`);return e?e.value:''}
 async function kumpul(id){const i=ITEMS.find(x=>x.id===id);const nama=nilai('iNama');const hasil=radio('hasil');
   if(!nama){toast('Isi nama petugas dulu');return null}if(!hasil){toast(i.jenis==='GD'?'Pilih: gardunya ada atau tidak':'Pilih: sesuai atau tidak');return null}
+  if(i.jenis==='GD'&&hasil==='Tidak ada'&&!TAG){toast('Tag dulu lokasi gardu yang sebenarnya (akurasi ≤'+AKU_TAG+' m)',4000);document.getElementById('tagBox').scrollIntoView({behavior:'smooth',block:'center'});return null}
+  const jk=nilai('iJk')==='Lainnya'?nilai('iJkL'):nilai('iJk'),pn=nilai('iPen')==='Lainnya'?nilai('iPenL'):nilai('iPen');
+  if(nilai('iJk')==='Lainnya'&&!jk){toast('Tulis jenis kabelnya');return null}if(nilai('iPen')==='Lainnya'&&!pn){toast('Tulis penampangnya');return null}
   simpan('cl_nama',nama);toast('Merekam posisi GPS…');const g=(await posisiSekarang())||(POS?{lat:POS[0],lon:POS[1],akurasi:AKU||''}:null);if(g){POS=[g.lat,g.lon];AKU=g.akurasi||AKU}
   const h=g?hitungPosisi(i):null;
   return {id,jenis:i.jenis,ulp:i.ulp,penyulang:i.py,section:i.section.join(', '),
     data:i.jenis==='GB'?(i.kode+' '+i.kva+' kVA, model jam 19 '+i.bp+'%'):i.jenis==='GD'?(i.kode+' '+(i.kva||'?')+' kVA'):((NMK[i.kab]||'')+' '+(i.mm||'')+(i.mm?' mm²':'')),tiang_data:(i.tiang_awal?i.tiang_awal+' → '+i.tiang_akhir:''),
-    titik:i.titik.join(','),petugas:nama,hasil,jenis_kabel:nilai('iJk'),penampang:nilai('iPen'),jumlah_tiang:nilai('iNt'),sirkit:radio('sirkit'),kode_gardu:nilai('iKode'),kva:nilai('iKva'),
+    titik:i.titik.join(','),petugas:nama,hasil,jenis_kabel:jk,penampang:pn,titik_benar:TAG?TAG.lat+','+TAG.lon:'',akurasi_tag:TAG?TAG.akurasi:'',geser_m:TAG?TAG.geser:'',jumlah_tiang:nilai('iNt'),sirkit:radio('sirkit'),kode_gardu:nilai('iKode'),kva:nilai('iKva'),
     iR:nilai('iR'),iS:nilai('iS'),iT:nilai('iT'),iN:nilai('iN'),kva_ukur:(i.jenis==='GB'&&nilai('iR')?((+nilai('iR')||0)+(+nilai('iS')||0)+(+nilai('iT')||0))*0.231:'')&&(((+nilai('iR')||0)+(+nilai('iS')||0)+(+nilai('iT')||0))*0.231).toFixed(1),
     catatan:nilai('iCat'),gps:g?g.lat.toFixed(6)+','+g.lon.toFixed(6):'',akurasi:g?g.akurasi:'',jarak_m:g?Math.round(jarak([g.lat,g.lon],i.titik)*1000):'',posisi:h?h.teks:'',
     waktu:new Date().toLocaleString('id-ID'),foto:FOTO.slice(0,3)}}
@@ -280,7 +317,7 @@ async function kirimAntri(tampil){if(!ANTRI.length)return;
       const t=await res.text();if(!/"ok"\s*:\s*true/.test(t))throw new Error(t.slice(0,80));STATUS[r.id]={waktu:r.waktu,petugas:r.petugas,hasil:r.hasil}}catch(e){sisa.push(r)}}
   const n=ANTRI.length-sisa.length;ANTRI=sisa;simpan('cl_antri',ANTRI);simpan('cl_status',STATUS);
   if(tampil)toast(n?n+' laporan terkirim'+(sisa.length?', '+sisa.length+' menunggu sinyal':''):'Belum terkirim (sinyal?). Disimpan di HP, akan dikirim ulang otomatis.',4000);render()}
-function kirimWA(id){kumpul(id).then(r=>{if(!r)return;const t=`*CEK LAPANGAN ${r.id}*\nULP: ${r.ulp}\nPenyulang: ${r.penyulang}\nSection: ${r.section}\nData: ${r.data}\nHasil: ${r.hasil}\n`+(r.jenis==='GB'?`kVA ${r.kva} · Arus R ${r.iR} S ${r.iS} T ${r.iT} N ${r.iN} A · ${r.kva_ukur} kVA\n`:r.jenis==='GD'?`Gardu: ${r.kode_gardu} ${r.kva} kVA\n`:`Lapangan: ${r.jenis_kabel} ${r.penampang} mm² · ${r.jumlah_tiang||'-'} tiang${r.sirkit?' · '+r.sirkit:''}\n`)+`Catatan: ${r.catatan}\nGPS: ${r.gps} (±${r.akurasi} m, ${r.posisi})\nPetugas: ${r.petugas} · ${r.waktu}`;
+function kirimWA(id){kumpul(id).then(r=>{if(!r)return;const t=`*CEK LAPANGAN ${r.id}*\nULP: ${r.ulp}\nPenyulang: ${r.penyulang}\nSection: ${r.section}\nData: ${r.data}\nHasil: ${r.hasil}\n`+(r.jenis==='GB'?`kVA ${r.kva} · Arus R ${r.iR} S ${r.iS} T ${r.iT} N ${r.iN} A · ${r.kva_ukur} kVA\n`:r.jenis==='GD'?`Gardu: ${r.kode_gardu} ${r.kva} kVA\n`:`Lapangan: ${r.jenis_kabel} ${r.penampang} mm² · ${r.jumlah_tiang||'-'} tiang${r.sirkit?' · '+r.sirkit:''}\n`)+(r.titik_benar?`Titik gardu sebenarnya: ${r.titik_benar} (±${r.akurasi_tag} m, geser ${r.geser_m} m)\n`:'')+`Catatan: ${r.catatan}\nGPS: ${r.gps} (±${r.akurasi} m, ${r.posisi})\nPetugas: ${r.petugas} · ${r.waktu}`;
   STATUS[id]={waktu:r.waktu,petugas:r.petugas,hasil:r.hasil};simpan('cl_status',STATUS);window.open('https://wa.me/'+(CFG.WA||'')+'?text='+encodeURIComponent(t),'_blank')})}
 async function tampilRekap(){let rows=[];
   if(CFG.ENDPOINT){rekap.innerHTML='<p class="ringkas">Memuat rekap dari server…</p>';try{const r=await fetch(CFG.ENDPOINT+'?aksi=rekap&kunci='+encodeURIComponent(CFG.KUNCI||''));const j=await r.json();rows=j.data||[];
